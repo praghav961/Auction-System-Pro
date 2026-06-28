@@ -1,1051 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0f0c29" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title> Auction System Pro</title>
-
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
-
-  <style>
-    /* ====================================================
-       RESET & ROOT VARIABLES
-    ==================================================== */
-    *, *::before, *::after {
-      margin: 0; padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    :root {
-      --bg-primary: #0f0c29;
-      --bg-secondary: #1a1740;
-      --card-bg: rgba(255,255,255,0.06);
-      --card-border: rgba(255,255,255,0.08);
-      --gold: #ffd200;
-      --orange: #f7971e;
-      --green: #92fe9d;
-      --blue: #00c9ff;
-      --red: #ff4d4d;
-      --text-primary: #ffffff;
-      --text-secondary: #aaaaaa;
-      --text-muted: #666666;
-      --radius-sm: 12px;
-      --radius-md: 16px;
-      --radius-lg: 20px;
-      --shadow: 0 8px 32px rgba(0,0,0,0.4);
-      --transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-      --nav-height: 65px;
-    }
-
-    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, var(--bg-primary), #302b63, #24243e);
-      background-attachment: fixed;
-      color: var(--text-primary);
-      min-height: 100vh;
-      min-height: 100dvh;
-      padding-bottom: calc(var(--nav-height) + 10px);
-      overflow-x: hidden;
-    }
-
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
-
-    /* ====================================================
-       CONNECTION STATUS
-    ==================================================== */
-    #connectionStatus {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 9999;
-      text-align: center; font-size: 0.72rem; font-weight: 700;
-      letter-spacing: 1.5px; text-transform: uppercase;
-      padding: 6px 10px; transition: var(--transition);
-    }
-    #connectionStatus.connected  { background: rgba(0,180,0,0.85); color: #fff; }
-    #connectionStatus.disconnected { background: rgba(255,60,60,0.9); color: #fff; }
-
-    /* ====================================================
-       HEADER
-    ==================================================== */
-    .site-header {
-      position: sticky; top: 30px; z-index: 900;
-      background: rgba(15,12,41,0.9);
-      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--card-border);
-      padding: 12px 16px;
-      display: flex; align-items: center; justify-content: space-between;
-      height: 60px;
-    }
-    .site-header h1 {
-      font-size: 1.2rem; font-weight: 800;
-      background: linear-gradient(45deg, var(--orange), var(--gold));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .live-badge {
-      display: flex; align-items: center; gap: 6px;
-      background: rgba(255,77,77,0.2); border: 1px solid var(--red);
-      border-radius: 20px; padding: 4px 12px;
-      font-size: 0.72rem; font-weight: 700; color: var(--red);
-      text-transform: uppercase; letter-spacing: 1px;
-    }
-    .live-dot {
-      width: 7px; height: 7px; border-radius: 50%;
-      background: var(--red); animation: pulse 1.2s ease-in-out infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity:1; transform:scale(1); }
-      50%      { opacity:0.4; transform:scale(0.8); }
-    }
-
-    /* ====================================================
-       PAGE WRAPPER
-    ==================================================== */
-    .page-wrapper { padding: 10px 12px 0; margin-top: 30px; }
-
-    /* ====================================================
-       TAB PAGES
-    ==================================================== */
-    .tab-page { display: none; animation: fadeIn 0.3s ease; }
-    .tab-page.active { display: block; }
-    @keyframes fadeIn {
-      from { opacity:0; transform:translateY(8px); }
-      to   { opacity:1; transform:translateY(0); }
-    }
-
-    /* ====================================================
-       CARD
-    ==================================================== */
-    .card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: var(--radius-lg); padding: 16px;
-      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-      margin-bottom: 12px;
-    }
-    .card-title {
-      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 2px; color: var(--text-muted); margin-bottom: 12px;
-    }
-
-    /* ====================================================
-       STATUS BANNER
-    ==================================================== */
-    .status-banner {
-      background: linear-gradient(135deg,rgba(247,151,30,0.15),rgba(255,210,0,0.1));
-      border: 1px solid rgba(247,151,30,0.3); border-radius: var(--radius-md);
-      padding: 10px 14px; font-size: 0.85rem; font-weight: 600;
-      color: var(--gold); margin-bottom: 12px; text-align: center;
-    }
-
-    /* ====================================================
-       CURRENT PLAYER
-    ==================================================== */
-    .player-hero { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 10px 0; }
-    .player-photo-ring { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
-    .player-photo-ring::before {
-      content: ''; position: absolute; inset: -3px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--orange), var(--gold));
-      z-index: 0; animation: rotateRing 4s linear infinite;
-    }
-    @keyframes rotateRing { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-    .player-photo-ring img {
-      position: relative; z-index: 1; width: 100%; height: 100%;
-      border-radius: 50%; object-fit: cover;
-      border: 3px solid var(--bg-primary); display: block;
-    }
-    .player-details { text-align: center; }
-    .player-details h2 { font-size: 1.6rem; font-weight: 800; line-height: 1.2; margin-bottom: 5px; }
-    .role-badge {
-      display: inline-block;
-      background: rgba(255,210,0,0.15); border: 1px solid rgba(255,210,0,0.4);
-      color: var(--gold); font-size: 0.75rem; font-weight: 700;
-      padding: 3px 12px; border-radius: 20px; text-transform: uppercase;
-      letter-spacing: 1px; margin-bottom: 6px;
-    }
-    .base-price-tag { font-size: 0.82rem; color: var(--text-secondary); }
-    .base-price-tag span { color: var(--text-primary); font-weight: 600; }
-
-    /* ====================================================
-       BID DISPLAY
-    ==================================================== */
-    .bid-hero { text-align: center; padding: 8px 0; }
-    .bid-amount {
-      font-size: 2.8rem; font-weight: 900;
-      background: linear-gradient(135deg, var(--blue), var(--green));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; line-height: 1; margin-bottom: 10px;
-      letter-spacing: -1px;
-    }
-    .bid-status-chip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 6px 16px; border-radius: 30px;
-      font-size: 0.78rem; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
-    }
-    .bid-status-chip.active  { background:rgba(0,201,255,0.15);  color:var(--blue);  border:1px solid var(--blue); }
-    .bid-status-chip.sold    { background:rgba(146,254,157,0.15); color:var(--green); border:1px solid var(--green); }
-    .bid-status-chip.unsold  { background:rgba(255,77,77,0.15);   color:var(--red);   border:1px solid var(--red); }
-    .bid-status-chip.waiting { background:rgba(255,255,255,0.06); color:var(--text-secondary); border:1px solid rgba(255,255,255,0.15); }
-    .current-bidder-info { font-size: 0.9rem; color: var(--gold); font-weight: 600; }
-
-    /* ====================================================
-       TIMER
-    ==================================================== */
-    .timer-wrapper { display:flex; align-items:center; justify-content:center; gap:20px; }
-    .timer-circle { position:relative; width:90px; height:90px; }
-    .timer-svg { width:90px; height:90px; transform:rotate(-90deg); }
-    .timer-track { fill:none; stroke:rgba(255,255,255,0.08); stroke-width:6; }
-    .timer-progress {
-      fill:none; stroke:url(#timerGradient); stroke-width:6;
-      stroke-linecap:round; stroke-dasharray:251; stroke-dashoffset:0;
-      transition: stroke-dashoffset 0.5s ease;
-    }
-    .timer-text {
-      position:absolute; inset:0; display:flex;
-      align-items:center; justify-content:center;
-      font-size:1.6rem; font-weight:800;
-    }
-    .timer-info { text-align:left; }
-    .timer-info .timer-label-main { font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
-
-    /* ====================================================
-       LIVE GRID
-    ==================================================== */
-    @media (min-width: 600px) {
-      .live-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-      .live-grid .card-full { grid-column:1 / -1; }
-      .player-hero { flex-direction:row; text-align:left; }
-      .player-details { text-align:left; }
-    }
-
-    /* ====================================================
-       TEAMS GRID
-    ==================================================== */
-    .teams-grid { display:grid; grid-template-columns:1fr; gap:10px; }
-    @media (min-width:480px) { .teams-grid { grid-template-columns:1fr 1fr; } }
-    @media (min-width:900px) { .teams-grid { grid-template-columns:repeat(3,1fr); } }
-
-    .team-card {
-      background:var(--card-bg); border:1px solid var(--card-border);
-      border-radius:var(--radius-md); padding:14px; transition:var(--transition); cursor:pointer;
-    }
-    .team-card:active { transform:scale(0.98); border-color:rgba(255,255,255,0.2); }
-    .team-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
-    .team-logo-wrap {
-      width:50px; height:50px; border-radius:50%; overflow:hidden;
-      border:2px solid rgba(255,255,255,0.12); background:var(--bg-secondary); flex-shrink:0;
-    }
-    .team-logo-wrap img { width:100%; height:100%; object-fit:cover; display:block; }
-    .team-name { font-size:1rem; font-weight:700; line-height:1.2; }
-    .team-stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
-    .stat-item { text-align:center; background:rgba(255,255,255,0.04); border-radius:10px; padding:6px 4px; }
-    .stat-value { font-size:0.9rem; font-weight:700; color:#fff; display:block; }
-    .stat-label { font-size:0.62rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; }
-    .budget-bar { height:4px; background:rgba(255,255,255,0.08); border-radius:10px; overflow:hidden; }
-    .budget-fill { height:100%; border-radius:10px; background:linear-gradient(90deg,var(--blue),var(--green)); transition:width 0.6s ease; }
-
-    /* ====================================================
-       SOLD PLAYERS LIST
-    ==================================================== */
-    .sold-list { display:flex; flex-direction:column; gap:8px; }
-    .sold-card {
-      display:flex; align-items:center; gap:12px;
-      background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
-      border-radius:var(--radius-sm); padding:10px 12px; transition:var(--transition);
-    }
-    .sold-card:active { background:rgba(255,255,255,0.08); }
-    .sold-mini-photo {
-      width:42px; height:42px; border-radius:50%; object-fit:cover;
-      flex-shrink:0; background:var(--bg-secondary);
-      border:2px solid rgba(255,255,255,0.1);
-    }
-    .sold-info { flex:1; min-width:0; }
-    .sold-player-name { font-size:0.92rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sold-team-name { font-size:0.75rem; color:var(--text-secondary); margin-top:2px; }
-    .sold-amount { font-size:0.95rem; font-weight:800; color:var(--green); flex-shrink:0; }
-
-    .empty-state { text-align:center; padding:40px 20px; color:var(--text-muted); }
-    .empty-state .empty-icon { font-size:2.5rem; margin-bottom:10px; }
-    .empty-state p { font-size:0.9rem; }
-
-    /* ====================================================
-       BOTTOM NAV
-    ==================================================== */
-    .bottom-nav {
-      position:fixed; bottom:0; left:0; right:0; z-index:9000;
-      height:var(--nav-height);
-      background:rgba(15,12,41,0.95);
-      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      border-top:1px solid rgba(255,255,255,0.08);
-      display:flex; align-items:stretch; padding:0 8px;
-      padding-bottom:env(safe-area-inset-bottom);
-    }
-    .nav-btn {
-      flex:1; display:flex; flex-direction:column; align-items:center;
-      justify-content:center; gap:4px; background:none; border:none;
-      cursor:pointer; color:var(--text-muted); font-size:0.65rem;
-      font-weight:600; text-transform:uppercase; letter-spacing:0.5px;
-      border-radius:12px; transition:var(--transition); min-height:44px;
-    }
-    .nav-btn .nav-icon { font-size:1.4rem; line-height:1; transition:var(--transition); }
-    .nav-btn.active { color:var(--gold); }
-    .nav-btn.active .nav-icon { transform:scale(1.15); }
-    .nav-btn:active { opacity:0.6; }
-
-    /* ====================================================
-       SECTION HEADING
-    ==================================================== */
-    .section-heading {
-      font-size:1rem; font-weight:800; margin:18px 0 10px;
-      display:flex; align-items:center; gap:8px;
-    }
-    .section-heading::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.08); }
-
-    /* ====================================================
-       DESKTOP
-    ==================================================== */
-    @media (min-width:1024px) {
-      body { padding-bottom:0; }
-      .bottom-nav { display:none; }
-      .desktop-nav { display:flex !important; }
-      .page-wrapper { max-width:1100px; margin:30px auto 0; padding:0 20px; }
-      .tab-page { display:block !important; animation:none; }
-      .site-header { padding:12px 30px; }
-    }
-    .desktop-nav { display:none; gap:8px; }
-    .desktop-nav-btn {
-      background:none; border:1px solid rgba(255,255,255,0.1);
-      border-radius:30px; color:var(--text-secondary);
-      padding:6px 16px; font-size:0.8rem; font-weight:600;
-      cursor:pointer; transition:var(--transition);
-    }
-    .desktop-nav-btn.active {
-      background:rgba(255,210,0,0.15); border-color:var(--gold); color:var(--gold);
-    }
-
-    /* ====================================================
-       SKELETON
-    ==================================================== */
-    .skeleton {
-      background: linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.1) 50%,rgba(255,255,255,0.05) 75%);
-      background-size:200% 100%; animation:shimmer 1.5s infinite;
-      border-radius:8px;
-    }
-    @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
-
-    /* ====================================================
-       ✅ SOLD ANIMATION OVERLAY
-    ==================================================== */
-    #soldOverlay {
-      position: fixed; inset: 0; z-index: 99999;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at center, rgba(0,60,0,0.96) 0%, rgba(0,30,0,0.98) 100%);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #soldOverlay.show { opacity: 1; pointer-events: all; }
-
-    .sold-anim-hammer {
-      font-size: 5rem;
-      animation: hammerStrike 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
-      transform-origin: bottom right;
-      margin-bottom: 10px;
-    }
-    @keyframes hammerStrike {
-      0%   { transform: rotate(-60deg) scale(0.5); opacity: 0; }
-      60%  { transform: rotate(15deg)  scale(1.2); opacity: 1; }
-      80%  { transform: rotate(-8deg)  scale(1.0); }
-      100% { transform: rotate(0deg)   scale(1.0); opacity: 1; }
-    }
-
-    .sold-anim-text {
-      font-size: clamp(4rem, 18vw, 9rem);
-      font-weight: 900;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #92fe9d, #00c9ff, #ffd200);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-      animation: soldTextPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
-      text-shadow: none;
-      line-height: 1;
-    }
-    @keyframes soldTextPop {
-      0%   { transform: scale(0.3) rotate(-5deg); opacity: 0; }
-      70%  { transform: scale(1.15) rotate(2deg); opacity: 1; }
-      100% { transform: scale(1.0)  rotate(0deg); opacity: 1; }
-    }
-
-    .sold-anim-divider {
-      width: 200px; height: 3px;
-      background: linear-gradient(90deg, transparent, #ffd200, transparent);
-      margin: 14px 0;
-      animation: expandLine 0.4s ease 0.7s both;
-    }
-    @keyframes expandLine {
-      from { transform: scaleX(0); opacity: 0; }
-      to   { transform: scaleX(1); opacity: 1; }
-    }
-
-    .sold-anim-team {
-      font-size: clamp(1.2rem, 5vw, 2rem);
-      font-weight: 700; color: #ffd200;
-      text-align: center; padding: 0 20px;
-      animation: slideUp 0.4s ease 0.8s both;
-    }
-    .sold-anim-amount {
-      font-size: clamp(1.5rem, 6vw, 2.8rem);
-      font-weight: 900; color: #92fe9d;
-      animation: slideUp 0.4s ease 1s both;
-      margin-top: 6px;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(30px); opacity: 0; }
-      to   { transform: translateY(0);    opacity: 1; }
-    }
-
-    /* Confetti Particles */
-    .confetti-container {
-      position: absolute; inset: 0;
-      pointer-events: none; overflow: hidden;
-    }
-    .confetti-piece {
-      position: absolute;
-      width: 10px; height: 10px;
-      border-radius: 2px;
-      animation: confettiFall linear forwards;
-      opacity: 0;
-    }
-    @keyframes confettiFall {
-      0%   { transform: translateY(-20px) rotate(0deg);   opacity: 1; }
-      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
-    }
-
-    /* Ripple rings */
-    .sold-rings {
-      position: absolute; inset: 0;
-      display: flex; align-items: center; justify-content: center;
-      pointer-events: none;
-    }
-    .ring {
-      position: absolute;
-      border-radius: 50%;
-      border: 3px solid rgba(146, 254, 157, 0.4);
-      animation: ringExpand 1.5s ease-out forwards;
-    }
-    .ring:nth-child(1) { width: 100px; height: 100px; animation-delay: 0.2s; }
-    .ring:nth-child(2) { width: 100px; height: 100px; animation-delay: 0.5s; }
-    .ring:nth-child(3) { width: 100px; height: 100px; animation-delay: 0.8s; }
-    @keyframes ringExpand {
-      0%   { transform: scale(1);   opacity: 0.7; }
-      100% { transform: scale(8);   opacity: 0; }
-    }
-
-    /* ====================================================
-       ❌ UNSOLD ANIMATION OVERLAY
-    ==================================================== */
-    #unsoldOverlay {
-      position: fixed; inset: 0; z-index: 99999;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      background: radial-gradient(ellipse at center, rgba(80,0,0,0.97) 0%, rgba(30,0,0,0.99) 100%);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    #unsoldOverlay.show { opacity: 1; pointer-events: all; }
-
-    .unsold-anim-icon {
-      font-size: 4.5rem;
-      animation: iconShake 0.6s ease 0.2s both;
-      margin-bottom: 10px;
-    }
-    @keyframes iconShake {
-      0%,100% { transform: rotate(0deg)  scale(1); }
-      15%      { transform: rotate(-12deg) scale(1.2); }
-      30%      { transform: rotate(10deg)  scale(1.1); }
-      45%      { transform: rotate(-8deg)  scale(1.05); }
-      60%      { transform: rotate(6deg)   scale(1.02); }
-      75%      { transform: rotate(-4deg)  scale(1.01); }
-    }
-
-    .unsold-anim-text {
-      font-size: clamp(3.5rem, 16vw, 8rem);
-      font-weight: 900;
-      letter-spacing: 4px;
-      color: #ff4d4d;
-      animation: unsoldTextIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) 0.3s both;
-      line-height: 1;
-      text-align: center;
-    }
-    @keyframes unsoldTextIn {
-      0%   { transform: scale(1.8); opacity: 0; filter: blur(10px); }
-      100% { transform: scale(1.0); opacity: 1; filter: blur(0); }
-    }
-
-    .unsold-anim-line {
-      width: 180px; height: 3px;
-      background: linear-gradient(90deg, transparent, #ff4d4d, transparent);
-      margin: 14px 0;
-      animation: expandLine 0.4s ease 0.7s both;
-    }
-
-    .unsold-anim-label {
-      font-size: clamp(1rem, 4vw, 1.5rem);
-      font-weight: 600; color: rgba(255,100,100,0.8);
-      text-align: center; letter-spacing: 2px; text-transform: uppercase;
-      animation: slideUp 0.4s ease 0.8s both;
-    }
-
-    /* X marks */
-    .x-marks { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-    .x-mark {
-      position: absolute;
-      font-size: 1.5rem;
-      color: rgba(255, 77, 77, 0.25);
-      animation: xFloat linear forwards;
-      opacity: 0;
-    }
-    @keyframes xFloat {
-      0%   { transform: translateY(0)     rotate(0deg);   opacity: 0.6; }
-      100% { transform: translateY(-110vh) rotate(360deg); opacity: 0; }
-    }
-
-    /* Dark vignette for unsold */
-    .unsold-vignette {
-      position: absolute; inset: 0; pointer-events: none;
-      background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.6) 100%);
-    }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auction System Pro</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="container">
 
-  <!-- ===== CONNECTION BAR ===== -->
-  <div id="connectionStatus" class="disconnected">⚪ Connecting...</div>
-
-  <!-- ================================================================
-       ✅ SOLD ANIMATION OVERLAY
-  ================================================================ -->
-  <div id="soldOverlay">
-    <!-- Ripple rings behind everything -->
-    <div class="sold-rings">
-      <div class="ring"></div>
-      <div class="ring"></div>
-      <div class="ring"></div>
+  <header class="header">
+    <div>
+      <h1>🏏 Auction System Pro</h1>
+      <p id="headerTournament">Tournament: Not set</p>
     </div>
-    <!-- Confetti -->
-    <div class="confetti-container" id="confettiContainer"></div>
-    <!-- Content -->
-    <div class="sold-anim-hammer">🔨</div>
-    <div class="sold-anim-text">SOLD!</div>
-    <div class="sold-anim-divider"></div>
-    <div class="sold-anim-team" id="soldTeamName">Team Name</div>
-    <div class="sold-anim-amount" id="soldAmount">₹0</div>
-  </div>
-
-  <!-- ================================================================
-       ❌ UNSOLD ANIMATION OVERLAY
-  ================================================================ -->
-  <div id="unsoldOverlay">
-    <div class="unsold-vignette"></div>
-    <div class="x-marks" id="xMarksContainer"></div>
-    <div class="unsold-anim-icon">🚫</div>
-    <div class="unsold-anim-text">UNSOLD</div>
-    <div class="unsold-anim-line"></div>
-    <div class="unsold-anim-label">No Takers This Round</div>
-  </div>
-
-  <!-- ===== HEADER ===== -->
-  <header class="site-header">
-    <h1>🏏 IPL Auction</h1>
-    <nav class="desktop-nav" id="desktopNav">
-      <button class="desktop-nav-btn active" onclick="switchTab('live',this)">🔴 Live</button>
-      <button class="desktop-nav-btn" onclick="switchTab('teams',this)">🏟️ Teams</button>
-      <button class="desktop-nav-btn" onclick="switchTab('sold',this)">📋 Sold</button>
-    </nav>
-    <div class="live-badge">
-      <div class="live-dot"></div> Live
-    </div>
+    <span class="live-badge" id="liveBadge">● OFFLINE</span>
   </header>
 
-  <!-- ===== MAIN ===== -->
-  <main class="page-wrapper">
+  <div class="steps">
+    <div class="step active" data-step="1"><span>1</span> Setup</div>
+    <div class="step" data-step="2"><span>2</span> Teams</div>
+    <div class="step" data-step="3"><span>3</span> Players</div>
+    <div class="step" data-step="4"><span>4</span> Auction</div>
+  </div>
 
-    <!-- LIVE TAB -->
-    <section class="tab-page active" id="tab-live">
-      <div class="status-banner" id="auctionStatusBanner">⏳ Loading auction data...</div>
-      <div class="live-grid">
+  <section class="screen active" id="screen1">
+    <div class="card" style="max-width:680px;margin:auto;">
+      <div class="card-head">
+        <h2>⚙️ Auction Setup</h2>
+        <span class="badge-muted">Step 1 of 4</span>
+      </div>
 
-        <!-- Player Card -->
+      <p class="desc">Configure auction parameters before starting.</p>
+
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Tournament Name</label>
+          <input type="text" class="input" id="setupTournament" placeholder="e.g. IPL 2026" value="My Tournament">
+        </div>
+
+        <div class="form-group">
+          <label>Number of Teams</label>
+          <input type="number" class="input" id="setupTeams" min="2" value="4">
+        </div>
+
+        <div class="form-group">
+          <label>Players Per Team</label>
+          <input type="number" class="input" id="setupPerTeam" min="1" value="5">
+        </div>
+
+        <div class="form-group">
+          <label>Total Players</label>
+          <input type="number" class="input" id="setupPlayers" min="1" value="20">
+        </div>
+
+        <div class="form-group">
+          <label>Uniform Base Price</label>
+          <input type="number" class="input" id="setupBasePrice" min="1" value="100">
+        </div>
+
+        <div class="form-group full">
+          <label>Uniform Team Purse</label>
+          <input type="number" class="input" id="setupPurse" min="1" value="1000">
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="saveSetup()">💾 Save &amp; Next →</button>
+      </div>
+
+      <p class="note">⚠️ Starting a new setup will clear all existing auction data.</p>
+    </div>
+  </section>
+
+  <section class="screen" id="screen2">
+    <div class="card">
+      <div class="card-head">
+        <h2>🏆 Add Teams</h2>
+        <span class="badge-muted" id="teamProgress">0 / 0 added</span>
+      </div>
+      <p class="desc">Add team name and upload logo for each team.</p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="addTeamForm()">➕ Add Team</button>
+        <button class="btn btn-secondary" onclick="goToScreen(1)">← Back</button>
+        <button class="btn btn-primary" onclick="saveAllTeams()">💾 Save Teams &amp; Next →</button>
+      </div>
+      <div id="teamFormsContainer" class="entry-list"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen3">
+    <div class="card">
+      <div class="card-head">
+        <h2>👤 Add Players</h2>
+        <span class="badge-muted" id="playerProgress">0 / 0 added</span>
+      </div>
+      <p class="desc">
+        All players share base price: <strong id="basePriceLabel">0</strong>.
+        Order will be shuffled before auction starts.
+      </p>
+      <div class="btn-row">
+        <button class="btn btn-success" onclick="addPlayerForm()">➕ Add Player</button>
+        <button class="btn btn-secondary" onclick="goToScreen(2)">← Back</button>
+        <button class="btn btn-primary" onclick="saveAllPlayers()">💾 Save &amp; Start Auction →</button>
+      </div>
+      <div id="playerFormsContainer" class="entry-list"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="screen4">
+    <div class="end-banner" id="endBanner" style="display:none;">
+      <h2>🎉 Auction Complete!</h2>
+      <p>All teams have reached their player limit.</p>
+      <div class="btn-row" style="justify-content:center;margin-top:14px;">
+        <button class="btn btn-pink" onclick="reauctionUnsold()">🔄 Re-Auction Unsold</button>
+        <button class="btn btn-secondary" onclick="goToScreen(1)">🆕 New Auction</button>
+        <button class="btn btn-orange" onclick="exportCSV()">📥 Export CSV</button>
+      </div>
+    </div>
+
+    <div class="auction-layout">
+      <aside>
+        <div class="card sticky-card">
+          <div class="card-head">
+            <h2>Teams</h2>
+            <span class="badge-muted" id="teamCountBadge">0</span>
+          </div>
+          <div id="teamsDashboard" class="teams-scroll"></div>
+        </div>
+      </aside>
+
+      <main class="main-col">
         <div class="card">
-          <div class="card-title">👤 Current Player</div>
-          <div class="player-hero">
-            <div class="player-photo-ring">
-              <img id="currentPlayerPhoto" src="" alt="Player"
-                   onerror="this.src='https://placehold.co/110x110/1a1740/888?text=Player'" />
+          <div class="card-head">
+            <h2>📊 Summary</h2>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="startAuction()">▶️ Next Player</button>
+              <button class="btn btn-pink" onclick="reauctionUnsold()">🔄 Re-Auction</button>
+              <button class="btn btn-info" onclick="reloadAuctionData()">↺ Reload</button>
+              <button class="btn btn-orange" onclick="exportCSV()">📥 Export</button>
             </div>
-            <div class="player-details">
-              <h2 id="currentPlayerName">Waiting...</h2>
-              <div class="role-badge" id="currentPlayerRole">—</div>
-              <div class="base-price-tag">
-                Base Price: <span id="currentPlayerBasePrice">—</span>
-              </div>
-            </div>
+          </div>
+          <div class="summary-grid">
+            <div class="s-box"><div class="s-lbl">Teams</div><div class="s-val" id="sTeams">0</div></div>
+            <div class="s-box"><div class="s-lbl">Players</div><div class="s-val" id="sPlayers">0</div></div>
+            <div class="s-box"><div class="s-lbl">Per Team</div><div class="s-val" id="sPerTeam">0</div></div>
+            <div class="s-box"><div class="s-lbl">Base Price</div><div class="s-val" id="sBase">0</div></div>
+            <div class="s-box"><div class="s-lbl">Purse</div><div class="s-val" id="sPurse">0</div></div>
+            <div class="s-box"><div class="s-lbl">Round</div><div class="s-val" id="sRound">1</div></div>
           </div>
         </div>
 
-        <!-- Bid Card -->
         <div class="card">
-          <div class="card-title">💰 Live Bid</div>
-          <div class="bid-hero">
-            <div class="bid-amount" id="currentBidAmount">₹0</div>
-            <div class="bid-status-chip waiting" id="bidStatus">⏳ Waiting</div>
-            <div class="current-bidder-info" id="currentBidder">—</div>
+          <div class="card-head">
+            <h2>🎯 Current Player</h2>
+            <span class="badge-muted" id="currentBadge">Awaiting</span>
+          </div>
+          <div id="currentPlayerArea" class="player-box">
+            <div class="player-placeholder">👤</div>
+            <h3 class="player-big-name">No Player Loaded</h3>
+            <p class="desc">Click Next Player to begin</p>
           </div>
         </div>
 
-        <!-- Timer Card -->
-        <div class="card card-full">
-          <div class="card-title">⏱ Auction Timer</div>
-          <div class="timer-wrapper">
-            <div class="timer-circle">
-              <svg class="timer-svg" viewBox="0 0 90 90">
-                <defs>
-                  <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#f7971e"/>
-                    <stop offset="100%" style="stop-color:#ffd200"/>
-                  </linearGradient>
-                </defs>
-                <circle class="timer-track" cx="45" cy="45" r="40"/>
-                <circle class="timer-progress" id="timerProgress" cx="45" cy="45" r="40"/>
-              </svg>
-              <div class="timer-text" id="timerDisplay">00</div>
-            </div>
-            <div class="timer-info">
-              <div class="timer-label-main">Seconds Left</div>
-              <div id="timerMessage" style="color:var(--gold);font-size:0.9rem;font-weight:600;margin-top:4px;"></div>
-            </div>
+        <div class="card">
+          <div class="card-head">
+            <h2>📝 Auction Feed</h2>
+            <span class="badge-muted" id="feedCountBadge">0</span>
+          </div>
+          <ul class="feed-list" id="feedList">
+            <li class="muted-li">No activity yet.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <h2>👥 All Players</h2>
+            <span class="badge-muted" id="playerTableBadge">0</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Photo</th>
+                  <th>Name</th>
+                  <th>Batting</th>
+                  <th>Bowling</th>
+                  <th>Team Logo</th>
+                  <th>Team</th>
+                  <th>Bid</th>
+                  <th>Status</th>
+                  <th>Round</th>
+                </tr>
+              </thead>
+              <tbody id="playersTableBody"></tbody>
+            </table>
           </div>
         </div>
+      </main>
+    </div>
+  </section>
+</div>
 
-      </div>
-    </section>
-
-    <!-- TEAMS TAB -->
-    <section class="tab-page" id="tab-teams">
-      <div class="section-heading">🏟️ All Teams</div>
-      <div class="teams-grid" id="teamsContainer">
-        <div class="team-card skeleton" style="height:140px;"></div>
-        <div class="team-card skeleton" style="height:140px;"></div>
-        <div class="team-card skeleton" style="height:140px;"></div>
-        <div class="team-card skeleton" style="height:140px;"></div>
-      </div>
-    </section>
-
-    <!-- SOLD TAB -->
-    <section class="tab-page" id="tab-sold">
-      <div class="section-heading">📋 Sold Players</div>
-      <div class="sold-list" id="soldPlayersContainer">
-        <div class="empty-state">
-          <div class="empty-icon">🏏</div>
-          <p>No players sold yet.<br/>Check back soon!</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- BOTTOM NAV -->
-  <nav class="bottom-nav">
-    <button class="nav-btn active" onclick="switchTab('live',this)">
-      <span class="nav-icon">🔴</span> Live
-    </button>
-    <button class="nav-btn" onclick="switchTab('teams',this)">
-      <span class="nav-icon">🏟️</span> Teams
-    </button>
-    <button class="nav-btn" onclick="switchTab('sold',this)">
-      <span class="nav-icon">📋</span> Sold
-    </button>
-  </nav>
-
-  <!-- ============================================================
-       JAVASCRIPT
-  ============================================================ -->
-  <script>
-    // ============================================================
-    // 1. FIREBASE CONFIG — Replace with YOUR values
-    // ============================================================
-    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyCWvHbZghVZu9aDUO-sHroxOiN0WXZ3AgI",
-  authDomain: "cricketauction-df77b.firebaseapp.com",
-  databaseURL: "https://cricketauction-df77b-default-rtdb.firebaseio.com",
-  projectId: "cricketauction-df77b",
-  storageBucket: "cricketauction-df77b.firebasestorage.app",
-  messagingSenderId: "1052181366792",
-  appId: "1:1052181366792:web:c86af556248567e9f5e9bd",
-  measurementId: "G-BF00NXYJJ9"
-};
-
-    // ============================================================
-    // 2. CLOUDINARY CONFIG
-    // ============================================================
-    const CLOUDINARY_CLOUD_NAME = "djs0aghiu";
-
-    function getOptimizedUrl(url, width = 400) {
-      if (!url) return "";
-      if (!url.includes("cloudinary.com")) return url;
-      return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width},c_fill/`);
-    }
-
-    // ============================================================
-    // 3. INIT FIREBASE
-    // ============================================================
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // ============================================================
-    // 4. DOM REFS
-    // ============================================================
-    const connectionStatus    = document.getElementById("connectionStatus");
-    const auctionStatusBanner = document.getElementById("auctionStatusBanner");
-    const currentPlayerPhoto  = document.getElementById("currentPlayerPhoto");
-    const currentPlayerName   = document.getElementById("currentPlayerName");
-    const currentPlayerRole   = document.getElementById("currentPlayerRole");
-    const currentPlayerBaseP  = document.getElementById("currentPlayerBasePrice");
-    const currentBidAmount    = document.getElementById("currentBidAmount");
-    const bidStatus           = document.getElementById("bidStatus");
-    const currentBidder       = document.getElementById("currentBidder");
-    const timerDisplay        = document.getElementById("timerDisplay");
-    const timerProgress       = document.getElementById("timerProgress");
-    const timerMessage        = document.getElementById("timerMessage");
-    const teamsContainer      = document.getElementById("teamsContainer");
-    const soldContainer       = document.getElementById("soldPlayersContainer");
-
-    // Animation overlays
-    const soldOverlay    = document.getElementById("soldOverlay");
-    const unsoldOverlay  = document.getElementById("unsoldOverlay");
-    const soldTeamNameEl = document.getElementById("soldTeamName");
-    const soldAmountEl   = document.getElementById("soldAmount");
-
-    // ============================================================
-    // 5. NAV
-    // ============================================================
-    const allTabs    = document.querySelectorAll(".tab-page");
-    const allNavBtns = document.querySelectorAll(".nav-btn");
-
-    function switchTab(tabName, clickedBtn) {
-      allTabs.forEach(t => t.classList.remove("active"));
-      const target = document.getElementById("tab-" + tabName);
-      if (target) target.classList.add("active");
-      allNavBtns.forEach(b => b.classList.remove("active"));
-      if (clickedBtn && clickedBtn.classList.contains("nav-btn")) clickedBtn.classList.add("active");
-      document.querySelectorAll(".desktop-nav-btn").forEach(b => b.classList.remove("active"));
-      if (clickedBtn && clickedBtn.classList.contains("desktop-nav-btn")) clickedBtn.classList.add("active");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    // ============================================================
-    // 6. HELPERS
-    // ============================================================
-    function formatPrice(price) {
-      if (!price && price !== 0) return "—";
-      const num = Number(price);
-      if (isNaN(num)) return "—";
-      if (num >= 10000000) return "₹" + (num / 10000000).toFixed(2) + " Cr";
-      if (num >= 100000)   return "₹" + (num / 100000).toFixed(2)   + " L";
-      return "₹" + num.toLocaleString("en-IN");
-    }
-
-    const TIMER_MAX     = 60;
-    const CIRCUMFERENCE = 2 * Math.PI * 40;
-
-    function updateTimerCircle(seconds) {
-      const fraction = Math.min(1, Math.max(0, seconds / TIMER_MAX));
-      timerProgress.style.strokeDashoffset = CIRCUMFERENCE * (1 - fraction);
-      timerProgress.style.stroke = seconds <= 10 ? "#ff4d4d" : "url(#timerGradient)";
-    }
-
-    // ============================================================
-    // 7. ✅ SOLD ANIMATION
-    // ============================================================
-    let soldTimeout = null;
-
-    function showSoldAnimation(teamName, amount) {
-      // Fill in details
-      soldTeamNameEl.textContent = `🏟️ ${teamName || "Unknown Team"}`;
-      soldAmountEl.textContent   = formatPrice(amount);
-
-      // Generate confetti
-      spawnConfetti();
-
-      // Show overlay
-      soldOverlay.classList.add("show");
-
-      // Auto-hide after 4 seconds
-      clearTimeout(soldTimeout);
-      soldTimeout = setTimeout(() => {
-        soldOverlay.classList.remove("show");
-        clearConfetti();
-      }, 4000);
-    }
-
-    function spawnConfetti() {
-      const container = document.getElementById("confettiContainer");
-      container.innerHTML = "";
-      const colors = ["#ffd200","#f7971e","#92fe9d","#00c9ff","#ff6b6b","#a29bfe","#fd79a8","#ffffff"];
-      for (let i = 0; i < 80; i++) {
-        const piece = document.createElement("div");
-        piece.className = "confetti-piece";
-        piece.style.left     = Math.random() * 100 + "vw";
-        piece.style.top      = "-20px";
-        piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-        piece.style.width    = (Math.random() * 10 + 6) + "px";
-        piece.style.height   = (Math.random() * 10 + 6) + "px";
-        piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
-        const duration = (Math.random() * 2 + 2).toFixed(2);
-        const delay    = (Math.random() * 1.5).toFixed(2);
-        piece.style.animationDuration = duration + "s";
-        piece.style.animationDelay    = delay + "s";
-        container.appendChild(piece);
-      }
-    }
-
-    function clearConfetti() {
-      document.getElementById("confettiContainer").innerHTML = "";
-    }
-
-    // ============================================================
-    // 8. ❌ UNSOLD ANIMATION
-    // ============================================================
-    let unsoldTimeout = null;
-
-    function showUnsoldAnimation() {
-      spawnXMarks();
-      unsoldOverlay.classList.add("show");
-      clearTimeout(unsoldTimeout);
-      unsoldTimeout = setTimeout(() => {
-        unsoldOverlay.classList.remove("show");
-        clearXMarks();
-      }, 3500);
-    }
-
-    function spawnXMarks() {
-      const container = document.getElementById("xMarksContainer");
-      container.innerHTML = "";
-      for (let i = 0; i < 20; i++) {
-        const x = document.createElement("div");
-        x.className   = "x-mark";
-        x.textContent = "✕";
-        x.style.left  = Math.random() * 100 + "vw";
-        x.style.bottom = "-30px";
-        const duration = (Math.random() * 3 + 3).toFixed(2);
-        const delay    = (Math.random() * 2).toFixed(2);
-        x.style.animationDuration = duration + "s";
-        x.style.animationDelay    = delay + "s";
-        container.appendChild(x);
-      }
-    }
-
-    function clearXMarks() {
-      document.getElementById("xMarksContainer").innerHTML = "";
-    }
-
-    // ============================================================
-    // 9. STATUS CHANGE TRACKER
-    // ============================================================
-    let previousStatus = null;
-    let animationLock  = false;  // prevent double triggers
-
-    function handleStatusChange(newStatus, teamName, amount) {
-      if (animationLock) return;
-      if (newStatus === previousStatus) return;
-
-      // Trigger animation only on fresh transition TO sold/unsold
-      if (newStatus === "sold" && previousStatus !== "sold") {
-        animationLock = true;
-        showSoldAnimation(teamName, amount);
-        setTimeout(() => { animationLock = false; }, 4500);
-      }
-
-      if (newStatus === "unsold" && previousStatus !== "unsold") {
-        animationLock = true;
-        showUnsoldAnimation();
-        setTimeout(() => { animationLock = false; }, 4000);
-      }
-
-      previousStatus = newStatus;
-    }
-
-    // ============================================================
-    // 10. CONNECTION MONITOR
-    // ============================================================
-    db.ref(".info/connected").on("value", (snap) => {
-      if (snap.val() === true) {
-        connectionStatus.textContent = "🟢 LIVE — Connected";
-        connectionStatus.className = "connected";
-      } else {
-        connectionStatus.textContent = "🔴 Disconnected — Reconnecting...";
-        connectionStatus.className = "disconnected";
-      }
-    });
-
-    // ============================================================
-    // 11. CURRENT AUCTION LISTENER
-    // ============================================================
-    db.ref("current_auction").on("value", (snap) => {
-      const data = snap.val();
-      if (!data) {
-        auctionStatusBanner.textContent = "⏸️ Auction paused.";
-        currentPlayerPhoto.src  = "";
-        currentPlayerName.textContent = "Waiting...";
-        currentPlayerRole.textContent = "—";
-        currentPlayerBaseP.textContent = "—";
-        currentBidAmount.textContent   = "₹0";
-        bidStatus.textContent  = "⏳ Waiting";
-        bidStatus.className    = "bid-status-chip waiting";
-        currentBidder.textContent = "—";
-        timerDisplay.textContent  = "00";
-        timerMessage.textContent  = "";
-        updateTimerCircle(0);
-        previousStatus = null;
-        return;
-      }
-
-      // --- Player ---
-      const player   = data.currentPlayer || {};
-      const rawPhoto = player.photoUrl || player.photo || "";
-      currentPlayerPhoto.src      = rawPhoto ? getOptimizedUrl(rawPhoto, 300) : "https://placehold.co/110x110/1a1740/888?text=Player";
-      currentPlayerName.textContent = player.name      || "Unknown Player";
-      currentPlayerRole.textContent = player.role      || "—";
-      currentPlayerBaseP.textContent = player.basePrice ? formatPrice(player.basePrice) : "—";
-
-      // --- Bid ---
-      const bid     = data.currentBid || {};
-      const bidAmt  = bid.amount   || 0;
-      const bidder  = bid.teamName || bid.team || "";
-      currentBidAmount.textContent  = formatPrice(bidAmt);
-      currentBidder.textContent     = bidder ? `Highest Bid: ${bidder}` : "No bids yet";
-
-      // --- Status ---
-      const status = (data.status || "waiting").toLowerCase();
-      const statusMap = {
-        active:  { text: "🟢 Bidding Active", cls: "active",  banner: "🔥 Live Bidding in Progress" },
-        sold:    { text: "✅ Sold!",           cls: "sold",    banner: `🎉 Sold to ${bidder} for ${formatPrice(bidAmt)}` },
-        unsold:  { text: "❌ Unsold",          cls: "unsold",  banner: "🚫 Player went Unsold" },
-        waiting: { text: "⏳ Waiting...",       cls: "waiting", banner: "⏳ Next player coming up..." }
-      };
-      const s = statusMap[status] || statusMap.waiting;
-      bidStatus.textContent        = s.text;
-      bidStatus.className          = `bid-status-chip ${s.cls}`;
-      auctionStatusBanner.textContent = s.banner;
-
-      // --- 🔑 Trigger sold/unsold animation on status change ---
-      handleStatusChange(status, bidder, bidAmt);
-
-      // --- Timer ---
-      const timeLeft = Math.max(0, Math.floor(data.timer || 0));
-      timerDisplay.textContent    = String(timeLeft).padStart(2, "0");
-      timerDisplay.style.color    = timeLeft <= 10 ? "var(--red)" : "var(--text-primary)";
-      updateTimerCircle(timeLeft);
-
-      if (timeLeft <= 10 && timeLeft > 0 && status === "active") {
-        timerMessage.textContent = "⏰ Going once... Going twice...";
-      } else if (timeLeft <= 0 && status === "active") {
-        timerMessage.textContent = "⌛ Time's up!";
-      } else {
-        timerMessage.textContent = "";
-      }
-    });
-
-    // ============================================================
-    // 12. TEAMS LISTENER
-    // ============================================================
-    db.ref("teams").on("value", (snap) => {
-      const teams = snap.val();
-      if (!teams) {
-        teamsContainer.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🏟️</div><p>No teams configured.</p></div>`;
-        return;
-      }
-      let html = "";
-      Object.keys(teams).forEach((id) => {
-        const t = teams[id];
-        const logo     = t.logoUrl || t.logo || "";
-        const optLogo  = logo ? getOptimizedUrl(logo, 150) : "https://placehold.co/50x50/1a1740/888?text=T";
-        const budget   = Number(t.budget) || 0;
-        const spent    = Number(t.spent)  || 0;
-        const remaining= budget - spent;
-        const pct      = budget > 0 ? Math.min(100, (spent / budget) * 100).toFixed(1) : 0;
-        const playerCount = t.players ? Object.keys(t.players).length : 0;
-        html += `
-          <div class="team-card">
-            <div class="team-header">
-              <div class="team-logo-wrap">
-                <img src="${optLogo}" alt="${t.name || id}" loading="lazy"/>
-              </div>
-              <div class="team-name">${t.name || id}</div>
-            </div>
-            <div class="team-stats-row">
-              <div class="stat-item">
-                <span class="stat-value">${formatPrice(remaining)}</span>
-                <span class="stat-label">Remaining</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value">${formatPrice(spent)}</span>
-                <span class="stat-label">Spent</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-value">${playerCount}</span>
-                <span class="stat-label">Players</span>
-              </div>
-            </div>
-            <div class="budget-bar">
-              <div class="budget-fill" style="width:${pct}%"></div>
-            </div>
-          </div>`;
-      });
-      teamsContainer.innerHTML = html;
-    });
-
-    // ============================================================
-    // 13. SOLD PLAYERS LISTENER
-    // ============================================================
-    db.ref("sold_players").on("value", (snap) => {
-      const data = snap.val();
-      if (!data) {
-        soldContainer.innerHTML = `<div class="empty-state"><div class="empty-icon">🏏</div><p>No players sold yet.<br/>Check back soon!</p></div>`;
-        return;
-      }
-      const arr = Object.keys(data)
-        .map(k => ({ id: k, ...data[k] }))
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-
-      let html = "";
-      arr.forEach((p) => {
-        const rawPhoto = p.photoUrl || p.photo || "";
-        const photo    = rawPhoto ? getOptimizedUrl(rawPhoto, 100) : "https://placehold.co/42x42/1a1740/888?text=P";
-        html += `
-          <div class="sold-card">
-            <img class="sold-mini-photo" src="${photo}"
-                 alt="${p.playerName || p.name || 'Player'}" loading="lazy"
-                 onerror="this.src='https://placehold.co/42x42/1a1740/888?text=P'" />
-            <div class="sold-info">
-              <div class="sold-player-name">${p.playerName || p.name || "Unknown"}</div>
-              <div class="sold-team-name">🏟️ ${p.teamName || p.team || "—"}</div>
-            </div>
-            <div class="sold-amount">${formatPrice(p.amount || p.price || 0)}</div>
-          </div>`;
-      });
-      soldContainer.innerHTML = html;
-    });
-
-    console.log("🏏 IPL Auction Viewer — Ready with Sold/Unsold Animations!");
-  </script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
